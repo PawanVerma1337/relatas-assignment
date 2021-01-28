@@ -2,24 +2,33 @@ const   http    = require('http'),
         router  = require('./router'),
         parser  = require('url')
 
-const { getLogs } = require('./log')
+// const { getLogs } = require('./log')
+const { readFileWithPos } = require('./stream')
 var FilePositon = 0
 
 router.register('/log', async function(req, res) {
     url = parser.parse(req.url, true)
     var pos = url.query.pos
 
-    res.writeHead(200, { "Content-type": "text" });
+    try {
+        res.writeHead(200, { "Content-type": "text" });
 
-    if (pos == 'forward')
-        FilePositon += 1024
-    else if (pos == 'backward' && FilePositon != 0)
-        FilePositon -= 1024
-    else if (pos == 'backward' && FilePositon == 0)
-        res.end("Top of the logs.")
-    
-    const logs = await getLogs(FilePositon)
-    res.end(logs)
+        if(FilePositon >= 0) {
+            if (pos == 'forward')
+                FilePositon += 1
+            else if (pos == 'backward' && FilePositon >= 0)
+                FilePositon -= 1
+            else if (pos == 'backward' && FilePositon == 0)
+                res.end("Top of the logs.")
+        } else FilePositon = 0
+
+        FilePositon = FilePositon >= 0 ? FilePositon : 0
+
+        const logs = await readFileWithPos(FilePositon)
+        res.end(logs)
+    } catch (error) {
+        console.log(error)
+    }
 })
 
 function handleRequest(req, res) { 
